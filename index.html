@@ -27,6 +27,7 @@
         .menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; justify-items: center; }
         .item { border: 1px solid #ccc; padding: 15px; background: white; text-align: center; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .item img { width: 100%; height: 150px; object-fit: cover; border-radius: 5px; margin-bottom: 10px; }
+        .item .category { font-size: 12px; color: #666; margin-bottom: 5px; }
         button { background: #4caf50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
         button:hover { background: #45a049; }
         button.danger { background: #f44336; }
@@ -45,6 +46,10 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
         .productImage { width: 50px; height: 50px; object-fit: cover; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; padding: 20px; border-radius: 5px; width: 300px; text-align: center; }
+        .modal-content select { margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -125,6 +130,21 @@
         </div>
     </div>
 
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Personalizar Producto</h3>
+            <select id="sizeSelect">
+                <option value="default">Tamaño por defecto</option>
+            </select>
+            <select id="extraSelect">
+                <option value="none">Sin extras</option>
+            </select>
+            <p>Precio ajustado: $<span id="adjustedPrice">0.00</span></p>
+            <button onclick="addToCartWithOptions()">Agregar al Carrito</button>
+            <button onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+
     <div id="adminPanel">
         <h2>Panel de Administrador</h2>
         <div class="tabs">
@@ -179,11 +199,12 @@
         const mp = new MercadoPago('TU_PUBLIC_KEY', { locale: 'es-AR' });
         let cart = [];
         let total = 0;
+        let currentProduct = null;
         let products = JSON.parse(localStorage.getItem('products')) || [
-            { name: 'Hamburguesa', price: 5.99, desc: 'Deliciosa hamburguesa con queso.', image: 'https://via.placeholder.com/200x150?text=Hamburguesa' },
-            { name: 'Papas Fritas', price: 2.99, desc: 'Crujientes papas fritas.', image: 'https://via.placeholder.com/200x150?text=Papas+Fritas' },
-            { name: 'Bebida (Gaseosa)', price: 1.99, desc: 'Refresco frío.', image: 'https://via.placeholder.com/200x150?text=Bebida' },
-            { name: 'Ensalada', price: 4.99, desc: 'Ensalada fresca.', image: 'https://via.placeholder.com/200x150?text=Ensalada' }
+            { name: 'Hamburguesa', price: 5.99, desc: 'Deliciosa hamburguesa con queso.', image: 'https://via.placeholder.com/200x150?text=Hamburguesa', category: 'Plato Principal', options: { sizes: [], extras: [{ name: 'Queso Extra', price: 1 }, { name: 'Bacon', price: 2 }] } },
+            { name: 'Papas Fritas', price: 2.99, desc: 'Crujientes papas fritas.', image: 'https://via.placeholder.com/200x150?text=Papas+Fritas', category: 'Side', options: { sizes: [{ name: 'Pequeño', price: 0 }, { name: 'Grande', price: 1 }], extras: [] } },
+            { name: 'Bebida (Gaseosa)', price: 1.99, desc: 'Refresco frío.', image: 'https://via.placeholder.com/200x150?text=Bebida', category: 'Bebida', options: { sizes: [{ name: 'Pequeño', price: 0 }, { name: 'Mediano', price: 0.5 }, { name: 'Grande', price: 1 }], extras: [] } },
+            { name: 'Ensalada', price: 4.99, desc: 'Ensalada fresca.', image: 'https://via.placeholder.com/200x150?text=Ensalada', category: 'Side', options: { sizes: [], extras: [] } }
         ];
         let orders = JSON.parse(localStorage.getItem('orders')) || [];
         let orderId = orders.length + 1;
@@ -196,86 +217,38 @@
                 item.className = 'item';
                 item.innerHTML = `
                     <img src="${product.image}" alt="${product.name}">
+                    <div class="category">${product.category}</div>
                     <h3>${product.name}</h3>
                     <p>${product.desc}</p>
                     <p>$${product.price}</p>
-                    <button onclick="addToCart('${product.name}', ${product.price})">Agregar al Carrito</button>
+                    <button onclick="openModal(${index})">Agregar al Carrito</button>
                 `;
                 menu.appendChild(item);
             });
         }
 
-        function addToCart(name, price) {
-            cart.push({ name, price });
-            total += price;
-            updateCart();
-        }
-
-        function updateCart() {
-            const cartItems = document.getElementById('cartItems');
-            cartItems.innerHTML = '';
-            cart.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.name} - $${item.price}`;
-                cartItems.appendChild(li);
+        function openModal(index) {
+            currentProduct = products[index];
+            document.getElementById('modalTitle').textContent = `Personalizar ${currentProduct.name}`;
+            const sizeSelect = document.getElementById('sizeSelect');
+            const extraSelect = document.getElementById('extraSelect');
+            sizeSelect.innerHTML = '<option value="default">Tamaño por defecto</option>';
+            extraSelect.innerHTML = '<option value="none">Sin extras</option>';
+            currentProduct.options.sizes.forEach(size => {
+                sizeSelect.innerHTML += `<option value="${size.price}">${size.name} (+$${size.price})</option>`;
             });
-            document.getElementById('total').textContent = total.toFixed(2);
+            currentProduct.options.extras.forEach(extra => {
+                extraSelect.innerHTML += `<option value="${extra.price}">${extra.name} (+$${extra.price})</option>`;
+            });
+            updateAdjustedPrice();
+            document.getElementById('modal').classList.add('show');
         }
 
-        function toggleCart() {
-            document.getElementById('cart').classList.toggle('show');
+        function updateAdjustedPrice() {
+            const sizePrice = parseFloat(document.getElementById('sizeSelect').value) || 0;
+            const extraPrice = parseFloat(document.getElementById('extraSelect').value) || 0;
+            const adjusted = currentProduct.price + sizePrice + extraPrice;
+            document.getElementById('adjustedPrice').textContent = adjusted.toFixed(2);
         }
 
-        function showCheckout() {
-            document.getElementById('checkoutForm').style.display = 'block';
-        }
-
-        function submitOrder() {
-            const orderType = document.getElementById('orderType').value;
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
-            const email = document.getElementById('email').value;
-            const address = document.getElementById('address').value;
-            const notes = document.getElementById('notes').value;
-            const payment = document.getElementById('paymentMethod').value;
-            if (!orderType || !name || !phone || !email || !address || !payment) {
-                alert('Por favor, completa todos los campos obligatorios.');
-                return;
-            }
-            const order = { id: orderId++, name, phone, email, address, notes, payment, orderType, items: [...cart], total, status: 'Pendiente' };
-            orders.push(order);
-            localStorage.setItem('orders', JSON.stringify(orders));
-            if (payment === 'mercadopago') {
-                const checkout = mp.checkout({
-                    preference: {
-                        items: cart.map(item => ({ title: item.name, quantity: 1, unit_price: item.price })),
-                        payer: { email: email },
-                        back_urls: { success: window.location.href, failure: window.location.href }
-                    }
-                });
-                checkout.open();
-            } else {
-                alert(`Pedido enviado! ID: ${order.id}`);
-            }
-            cart = [];
-            total = 0;
-            updateCart();
-            document.getElementById('checkoutForm').style.display = 'none';
-            toggleCart();
-            updateStats();
-        }
-
-        function showAdmin() {
-            const password = prompt('Ingresa la contraseña de admin:');
-            if (password === 'Admin2025') {
-                document.getElementById('userView').style.display = 'none';
-                document.getElementById('adminPanel').style.display = 'block';
-                loadProductTable();
-                loadOrdersTable();
-                updateStats();
-            } else {
-                alert('Contraseña incorrecta.');
-            }
-        }
-
-        function hideAdmin() {
+        function addToCartWith
