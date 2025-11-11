@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Fast Food - Pedidos en Línea</title>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 280px; height: 100%; background: #d32f2f; color: white; padding: 15px; overflow-y: auto; z-index: 1000; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+        .sidebar h1 { margin: 0 0 10px 0; font-size: 20px; text-align: center; border-bottom: 1px solid #fff; padding-bottom: 8px; }
+        .sidebar section { margin-bottom: 15px; }
+        .sidebar h2 { margin: 0 0 8px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+        .sidebar p { margin: 3px 0; font-size: 13px; }
+        .contact-buttons { display: flex; flex-wrap: wrap; gap: 5px; }
+        .contact-buttons a { background: rgba(255,255,255,0.2); color: white; text-decoration: none; padding: 6px 8px; border-radius: 4px; font-size: 12px; text-align: center; flex: 1; min-width: 40px; }
+        .contact-buttons a:hover { background: rgba(255,255,255,0.4); }
+        .horarios ul { list-style: none; padding: 0; margin: 0; }
+        .horarios li { font-size: 12px; margin: 2px 0; }
+        .share-buttons { display: flex; flex-wrap: wrap; gap: 5px; }
+        .share-buttons button { background: #4caf50; color: white; border: none; padding: 6px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; flex: 1; min-width: 40px; }
+        .share-buttons button:hover { background: #45a049; }
+        .reviews a { color: white; text-decoration: none; font-size: 13px; display: block; padding: 5px; background: rgba(255,255,255,0.2); border-radius: 4px; text-align: center; }
+        .reviews a:hover { background: rgba(255,255,255,0.4); }
+        #adminLink { position: absolute; top: 10px; right: 10px; color: white; text-decoration: none; font-size: 12px; }
+        .main-content { margin-left: 280px; padding: 20px; }
+        .menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; justify-items: center; }
+        .item { border: 1px solid #ccc; padding: 15px; background: white; text-align: center; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .item img { width: 100%; height: 150px; object-fit: cover; border-radius: 5px; margin-bottom: 10px; }
+        button { background: #4caf50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
+        button:hover { background: #45a049; }
+        button.danger { background: #f44336; }
+        button.danger:hover { background: #d32f2f; }
+        #cart { position: fixed; top: 0; right: 0; width: 300px; height: 100%; background: white; border-left: 1px solid #ccc; padding: 20px; overflow-y: auto; display: none; z-index: 999; }
+        #cart.show { display: block; }
+        #checkoutForm { display: none; margin-top: 20px; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
+        #adminPanel { display: none; padding: 20px; background: white; margin: 20px; border-radius: 5px; }
+        .adminForm { margin-bottom: 20px; }
+        .tab { display: none; }
+        .tab.active { display: block; }
+        .tabs { margin-bottom: 20px; }
+        .tabs button { margin-right: 10px; background: #ddd; }
+        .tabs button.active { background: #4caf50; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        .productImage { width: 50px; height: 50px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>Hamburguesas el Puerco</h1>
+        <section>
+            <h2>Información del Local</h2>
+            <p>Calle Falsa 123, La Plata, Buenos Aires, AR</p>
+        </section>
+        <section>
+            <h2>Contacto</h2>
+            <div class="contact-buttons">
+                <a href="tel:+549123456789" title="Llamar">📞 Tel</a>
+                <a href="https://wa.me/549123456789?text=Hola,%20quiero%20hacer%20un%20pedido" title="WhatsApp">💬 WA</a>
+                <a href="https://instagram.com/hamburguesaselpuerco" title="Instagram">📷 IG</a>
+                <a href="https://hamburguesaselpuerco.com" title="Sitio Web">🌐 Web</a>
+                <a href="mailto:info@hamburguesaselpuerco.com" title="Email">✉️ Mail</a>
+            </div>
+        </section>
+        <section>
+            <h2>Horarios</h2>
+            <ul class="horarios">
+                <li>Lunes: 12:00-23:59</li>
+                <li>Martes: 12:00-23:59</li>
+                <li>Miércoles: 12:00-23:59</li>
+                <li>Jueves: 12:00-23:59</li>
+                <li>Viernes: 12:00-23:59</li>
+                <li>Sábado: 12:00-23:59</li>
+                <li>Domingo: 12:00-23:59</li>
+            </ul>
+        </section>
+        <section>
+            <h2>Reseñas</h2>
+            <a href="https://search.google.com/local/reviews?placeid=ChIJ1234567890abcdef" title="Reseñas en Google">⭐ Ver en Google</a>
+        </section>
+        <section>
+            <h2>Compartir</h2>
+            <div class="share-buttons">
+                <button onclick="shareOn('whatsapp')">💬 WA</button>
+                <button onclick="shareOn('telegram')">📱 TG</button>
+                <button onclick="shareOn('facebook')">📘 FB</button>
+                <button onclick="shareOn('twitter')">🐦 X</button>
+                <button onclick="shareOn('linkedin')">💼 LI</button>
+            </div>
+        </section>
+        <a id="adminLink" href="#" onclick="showAdmin()">Admin</a>
+    </div>
+
+    <div class="main-content" id="userView">
+        <div class="menu" id="menu"></div>
+        <button onclick="toggleCart()">Ver Carrito</button>
+    </div>
+
+    <div id="cart">
+        <h3>Tu Carrito</h3>
+        <ul id="cartItems"></ul>
+        <p>Total: $<span id="total">0.00</span></p>
+        <button onclick="showCheckout()">Finalizar Pedido</button>
+        <div id="checkoutForm">
+            <h4>Datos de Entrega</h4>
+            <select id="orderType" required>
+                <option value="">Selecciona tipo de pedido</option>
+                <option value="delivery">Delivery (Entrega a domicilio)</option>
+                <option value="takeaway">Takeaway (Recoger en local)</option>
+            </select>
+            <input type="text" id="name" placeholder="Nombre" required>
+            <input type="tel" id="phone" placeholder="Teléfono" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="text" id="address" placeholder="Dirección" required>
+            <textarea id="notes" placeholder="Notas adicionales (opcional)"></textarea>
+            <select id="paymentMethod" required>
+                <option value="">Selecciona método de pago</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia Bancaria</option>
+                <option value="mercadopago">MercadoPago</option>
+            </select>
+            <button onclick="submitOrder()">Enviar Pedido</button>
+        </div>
+    </div>
+
+    <div id="adminPanel">
+        <h2>Panel de Administrador</h2>
+        <div class="tabs">
+            <button onclick="switchTab('products')">Productos</button>
+            <button onclick="switchTab('orders')">Pedidos</button>
+            <button onclick="switchTab('stats')">Estadísticas</button>
+            <button onclick="switchTab('settings')">Configuración</button>
+        </div>
+        
+        <div id="productsTab" class="tab active">
+            <h3>Gestión de Productos</h3>
+            <div class="adminForm">
+                <input type="text" id="productName" placeholder="Nombre del Producto">
+                <input type="number" id="productPrice" placeholder="Precio (ej. 5.99)">
+                <textarea id="productDesc" placeholder="Descripción"></textarea>
+                <input type="file" id="productImage" accept="image/*" required>
+                <button onclick="addProduct()">Agregar Producto</button>
+            </div>
+            <table id="productTable">
+                <thead><tr><th>Imagen</th><th>Nombre</th><th>Precio</th><th>Descripción</th><th>Acciones</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div id="ordersTab" class="tab">
+            <h3>Pedidos Recientes</h3>
+            <table id="ordersTable">
+                <thead><tr><th>ID</th><th>Cliente</th><th>Tipo</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div id="statsTab" class="tab">
+            <h3>Estadísticas</h3>
+            <p>Total de Pedidos: <span id="totalOrders">0</span></p>
+            <p>Ingresos Totales: $<span id="totalRevenue">0.00</span></p>
+        </div>
+        
+        <div id="settingsTab" class="tab">
+            <h3>Configuración</h3>
+            <input type="text" id="newBusinessName" placeholder="Nombre del Negocio">
+            <button onclick="updateBusinessName()">Actualizar Nombre</button>
+            <br><br>
+            <input type="number" id="discount" placeholder="Descuento Global (%)">
+            <button onclick="applyDiscount()">Aplicar Descuento</button>
+        </div>
+        
+        <button onclick="hideAdmin()">Volver al Menú</button>
+    </div>
+
+    <script>
+        const mp = new MercadoPago('TU_PUBLIC_KEY', { locale: 'es-AR' });
+        let cart = [];
+        let total = 0;
+        let products = JSON.parse(localStorage.getItem('products')) || [
+            { name: 'Hamburguesa', price: 5.99, desc: 'Deliciosa hamburguesa con queso.', image: 'https://via.placeholder.com/200x150?text=Hamburguesa' },
+            { name: 'Papas Fritas', price: 2.99, desc: 'Crujientes papas fritas.', image: 'https://via.placeholder.com/200x150?text=Papas+Fritas' },
+            { name: 'Bebida (Gaseosa)', price: 1.99, desc: 'Refresco frío.', image: 'https://via.placeholder.com/200x150?text=Bebida' },
+            { name: 'Ensalada', price: 4.99, desc: 'Ensalada fresca.', image: 'https://via.placeholder.com/200x150?text=Ensalada' }
+        ];
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        let orderId = orders.length + 1;
+
+        function loadMenu() {
+            const menu = document.getElementById('menu');
+            menu.innerHTML = '';
+            products.forEach((product, index) => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}">
+                    <h3>${product.name}</h3>
+                    <p>${product.desc}</p>
+                    <p>$${product.price}</p>
+                    <button onclick="addToCart('${product.name}', ${product.price})">Agregar al Carrito</button>
+                `;
+                menu.appendChild(item);
+            });
+        }
+
+        function addToCart(name, price) {
+            cart.push({ name, price });
+            total += price;
+            updateCart();
+        }
+
+        function updateCart() {
+            const cartItems = document.getElementById('cartItems');
+            cartItems.innerHTML = '';
+            cart.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.name} - $${item.price}`;
+                cartItems.appendChild(li);
+            });
+            document.getElementById('total').textContent = total.toFixed(2);
+        }
+
+        function toggleCart() {
+            document.getElementById('cart').classList.toggle('show');
+        }
+
+        function showCheckout() {
+            document.getElementById('checkoutForm').style.display = 'block';
+        }
+
+        function submitOrder() {
+            const orderType = document.getElementById('orderType').value;
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            const address = document.getElementById('address').value;
+            const notes = document.getElementById('notes').value;
+            const payment = document.getElementById('paymentMethod').value;
+            if (!orderType || !name || !phone || !email || !address || !payment) {
+                alert('Por favor, completa todos los campos obligatorios.');
+                return;
+            }
+            const order = { id: orderId++, name, phone, email, address, notes, payment, orderType, items: [...cart], total, status: 'Pendiente' };
+            orders.push(order);
+            localStorage.setItem('orders', JSON.stringify(orders));
+            if (payment === 'mercadopago') {
+                const checkout = mp.checkout({
+                    preference: {
+                        items: cart.map(item => ({ title: item.name, quantity: 1, unit_price: item.price })),
+                        payer: { email: email },
+                        back_urls: { success: window.location.href, failure: window.location.href }
+                    }
+                });
+                checkout.open();
+            } else {
+                alert(`Pedido enviado! ID: ${order.id}`);
+            }
+            cart = [];
+            total = 0;
+            updateCart();
+            document.getElementById('checkoutForm').style.display = 'none';
+            toggleCart();
+            updateStats();
+        }
+
+        function showAdmin() {
+            const password = prompt('Ingresa la contraseña de admin:');
+            if (password === 'Admin2025') {
+                document.getElementById('userView').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                loadProductTable();
+                loadOrdersTable();
+                updateStats();
+            } else {
+                alert('Contraseña incorrecta.');
+            }
+        }
+
+        function hideAdmin() {
